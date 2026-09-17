@@ -1,0 +1,2080 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A股实时选股平台 V1.0</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#f4f6f8;
+  color:#172033;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
+  "PingFang SC","Microsoft YaHei",Arial,sans-serif;
+}
+header{
+  background:#111827;
+  color:#fff;
+  padding:18px 22px;
+}
+header h1{
+  margin:0;
+  font-size:22px;
+}
+header p{
+  margin:6px 0 0;
+  color:#b8c1d1;
+  font-size:13px;
+}
+.container{
+  max-width:1450px;
+  margin:auto;
+  padding:18px;
+}
+.panel{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  margin-bottom:16px;
+  padding:16px;
+}
+.panel-title{
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:14px;
+}
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+button,select,input{
+  height:36px;
+  border:1px solid #d1d5db;
+  border-radius:7px;
+  background:#fff;
+  padding:0 11px;
+  font-size:14px;
+}
+button{
+  cursor:pointer;
+}
+button:hover{
+  background:#f3f4f6;
+}
+button.primary{
+  background:#111827;
+  color:#fff;
+  border-color:#111827;
+}
+button.danger{
+  background:#fff;
+  color:#b91c1c;
+  border-color:#fecaca;
+}
+input{
+  min-width:180px;
+}
+.kpis{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:10px;
+}
+.kpi{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:13px;
+}
+.kpi-label{
+  color:#6b7280;
+  font-size:12px;
+}
+.kpi-value{
+  font-size:23px;
+  font-weight:700;
+  margin-top:5px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th,td{
+  border-bottom:1px solid #edf0f3;
+  padding:10px 8px;
+  text-align:left;
+  font-size:13px;
+  white-space:nowrap;
+}
+th{
+  background:#f8fafc;
+  color:#4b5563;
+}
+.empty{
+  padding:30px;
+  text-align:center;
+  color:#9ca3af;
+}
+.badge{
+  display:inline-block;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+}
+.buyA{background:#fee2e2;color:#b91c1c}
+.buyB{background:#ffedd5;color:#c2410c}
+.buyC{background:#fef3c7;color:#92400e}
+.sell{background:#ede9fe;color:#6d28d9}
+.ok{background:#dcfce7;color:#166534}
+.gray{background:#f3f4f6;color:#6b7280}
+.tabs{
+  display:flex;
+  gap:6px;
+  margin-bottom:14px;
+}
+.tab{
+  padding:8px 14px;
+  border:1px solid #d1d5db;
+  border-radius:7px;
+  cursor:pointer;
+}
+.tab.active{
+  background:#111827;
+  color:#fff;
+}
+.hidden{
+  display:none!important;
+}
+.status{
+  padding:9px 12px;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:7px;
+  font-size:13px;
+  color:#4b5563;
+}
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.small{
+  font-size:12px;
+  color:#6b7280;
+}
+@media(max-width:1000px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .grid2{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  th,td{font-size:12px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>A股实时选股平台 V1.0</h1>
+  <p>实时买入 / 持仓卖出 / 我的股票池 / 持仓池 / 标签管理</p>
+</header>
+
+<div class="container">
+
+  <!-- ==================== 行情状态 ==================== -->
+  <div class="panel">
+    <div class="toolbar">
+      <button class="primary" id="runBtn">立即运行筛选</button>
+      <button id="demoBtn">切换演示行情</button>
+      <button id="clearSignalsBtn">清除当前信号</button>
+
+      <span class="status" id="marketStatus">
+        行情模式：演示
+      </span>
+
+      <span class="status" id="refreshStatus">
+        前台刷新：等待
+      </span>
+    </div>
+  </div>
+
+  <!-- ==================== KPI ==================== -->
+  <div class="panel">
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-label">全市场股票</div>
+        <div class="kpi-value" id="kpiMarket">0</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">我的股票池</div>
+        <div class="kpi-value" id="kpiPool">0</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">我的持仓</div>
+        <div class="kpi-value" id="kpiHolding">0</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">A级买入</div>
+        <div class="kpi-value" id="kpiA">0</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">B级买入</div>
+        <div class="kpi-value" id="kpiB">0</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">卖出</div>
+        <div class="kpi-value" id="kpiSell">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 主功能 ==================== -->
+  <div class="panel">
+
+    <div class="tabs">
+      <div class="tab active" data-tab="buy">买入筛选</div>
+      <div class="tab" data-tab="sell">卖出筛选</div>
+      <div class="tab" data-tab="pool">我的股票池</div>
+      <div class="tab" data-tab="holding">我的持仓</div>
+      <div class="tab" data-tab="tag">标签管理</div>
+    </div>
+
+    <!-- ==================== 买入 ==================== -->
+    <div id="tab-buy">
+
+      <div class="toolbar" style="margin-bottom:12px">
+        <select id="buyScope">
+          <option value="market">全市场</option>
+          <option value="pool">我的股票池</option>
+        </select>
+
+        <button id="buyRun">运行买入筛选</button>
+
+        <span class="status">
+          仅显示当前有效买入信号
+        </span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>股票</th>
+            <th>价格</th>
+            <th>涨跌</th>
+            <th>MA5</th>
+            <th>MA8</th>
+            <th>MA13</th>
+            <th>MA21</th>
+            <th>MA34</th>
+            <th>MA55</th>
+            <th>成交量倍率</th>
+            <th>信号</th>
+          </tr>
+        </thead>
+        <tbody id="buyList"></tbody>
+      </table>
+
+    </div>
+
+    <!-- ==================== 卖出 ==================== -->
+    <div id="tab-sell" class="hidden">
+
+      <div class="toolbar" style="margin-bottom:12px">
+        <button id="sellRun">运行卖出筛选</button>
+
+        <span class="status">
+          仅筛选我的持仓
+        </span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>股票</th>
+            <th>价格</th>
+            <th>涨跌</th>
+            <th>MA5</th>
+            <th>成交量倍率</th>
+            <th>上影线</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody id="sellList"></tbody>
+      </table>
+
+    </div>
+
+    <!-- ==================== 股票池 ==================== -->
+    <div id="tab-pool" class="hidden">
+
+      <div class="toolbar" style="margin-bottom:12px">
+        <input id="poolSearch"
+               placeholder="输入股票代码或名称">
+
+        <button id="poolAdd" class="primary">
+          加入股票池
+        </button>
+
+        <button id="poolRemove" class="danger">
+          移除勾选股票
+        </button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>代码</th>
+            <th>名称</th>
+            <th>市场</th>
+            <th>标签</th>
+          </tr>
+        </thead>
+        <tbody id="poolList"></tbody>
+      </table>
+
+    </div>
+
+    <!-- ==================== 持仓 ==================== -->
+    <div id="tab-holding" class="hidden">
+
+      <div class="toolbar" style="margin-bottom:12px">
+        <input id="holdingSearch"
+               placeholder="输入股票代码或名称">
+
+        <button id="holdingAdd" class="primary">
+          加入持仓
+        </button>
+
+        <button id="holdingRemove" class="danger">
+          移除勾选股票
+        </button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>代码</th>
+            <th>名称</th>
+            <th>市场</th>
+          </tr>
+        </thead>
+        <tbody id="holdingList"></tbody>
+      </table>
+
+    </div>
+
+    <!-- ==================== 标签 ==================== -->
+    <div id="tab-tag" class="hidden">
+
+      <div class="toolbar" style="margin-bottom:12px">
+        <input id="tagInput" placeholder="输入新标签">
+        <button id="tagAdd" class="primary">新建标签</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>标签</th>
+            <th>使用股票数</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tagList"></tbody>
+      </table>
+
+    </div>
+
+  </div>
+
+  <!-- ==================== 当前信号 ==================== -->
+  <div class="panel">
+    <div class="panel-title">
+      当前有效信号
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>股票</th>
+          <th>买入</th>
+          <th>卖出</th>
+          <th>更新时间</th>
+        </tr>
+      </thead>
+      <tbody id="signalList"></tbody>
+    </table>
+  </div>
+
+  <!-- ==================== 系统说明 ==================== -->
+  <div class="panel">
+    <div class="panel-title">V1.0运行状态</div>
+
+    <div class="small">
+      后台策略计算：持续运行<br>
+      前台结果刷新：5分钟一次<br>
+      买入：5分钟持续确认 + A/B/C严格分类<br>
+      卖出：实时触发，不需要5分钟确认<br>
+      我的股票池与持仓池：完全独立<br>
+      标签：仅用于内部分类，不参与买入筛选
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   1. 数据存储
+   ========================================================= */
+
+const STORAGE = {
+  pool: "ASHARE_V10_STOCK_POOL",
+  holdings: "ASHARE_V10_HOLDINGS",
+  tags: "ASHARE_V10_TAGS",
+  signals: "ASHARE_V10_SIGNALS",
+  candidates: "ASHARE_V10_CANDIDATES"
+};
+
+function load(key, fallback){
+  try{
+    const x = localStorage.getItem(key);
+    return x ? JSON.parse(x) : fallback;
+  }catch(e){
+    return fallback;
+  }
+}
+
+function save(key,value){
+  localStorage.setItem(key,JSON.stringify(value));
+}
+
+let stockPool = load(STORAGE.pool,[]);
+let holdings = load(STORAGE.holdings,[]);
+let tags = load(STORAGE.tags,[]);
+let signals = load(STORAGE.signals,{});
+let candidates = load(STORAGE.candidates,{});
+
+/* =========================================================
+   2. 股票基础数据
+   ========================================================= */
+
+const DEMO_STOCKS = [
+  {
+    code:"600519",
+    name:"贵州茅台",
+    market:"沪市",
+    yesterday:1450
+  },
+  {
+    code:"000858",
+    name:"五粮液",
+    market:"深市",
+    yesterday:125
+  },
+  {
+    code:"600036",
+    name:"招商银行",
+    market:"沪市",
+    yesterday:42
+  },
+  {
+    code:"601318",
+    name:"中国平安",
+    market:"沪市",
+    yesterday:55
+  },
+  {
+    code:"000333",
+    name:"美的集团",
+    market:"深市",
+    yesterday:68
+  },
+  {
+    code:"300750",
+    name:"宁德时代",
+    market:"创业板",
+    yesterday:380
+  },
+  {
+    code:"688981",
+    name:"中芯国际",
+    market:"科创板",
+    yesterday:92
+  },
+  {
+    code:"830799",
+    name:"艾融软件",
+    market:"北交所",
+    yesterday:24
+  }
+];
+
+/* =========================================================
+   3. 行情接口层
+   =========================================================
+   后续正式行情接口只需要替换这里。
+   策略引擎不直接依赖具体行情供应商。
+   ========================================================= */
+
+const MarketAPI = {
+
+  mode:"demo",
+
+  async getUniverse(){
+
+    /*
+      正式版本：
+      这里接入实时A股股票列表。
+
+      当前演示模式返回模拟市场。
+    */
+
+    return DEMO_STOCKS.filter(s=>{
+      return !/^(ST|\*ST)/i.test(s.name)
+        && s.market !== "北交所" ? true : true;
+    });
+  },
+
+  async getRealtime(stock){
+
+    const now = Date.now();
+
+    /*
+      演示实时价格。
+      真实版本替换这里即可。
+    */
+
+    const seed =
+      stock.code.split("")
+        .reduce((a,b)=>a+Number(b),0);
+
+    const wave =
+      Math.sin(now/90000 + seed) * 0.012;
+
+    const price =
+      stock.yesterday * (1 + wave + 0.006);
+
+    const volumeBase =
+      1000000 + seed * 10000;
+
+    const volume =
+      volumeBase *
+      (1.05 + Math.abs(Math.sin(now/120000+seed))*0.7);
+
+    return {
+      code:stock.code,
+      name:stock.name,
+      market:stock.market,
+      price,
+      yesterdayClose:stock.yesterday,
+      volume,
+      suspended:false,
+      limitUp:false,
+      limitDown:false
+    };
+  },
+
+  async getHistory(stock){
+
+    /*
+      返回最近55个交易日的官方收盘价。
+
+      正式版本这里必须替换成真实历史日线。
+    */
+
+    const arr = [];
+    const seed =
+      stock.code.split("")
+        .reduce((a,b)=>a+Number(b),0);
+
+    let p = stock.yesterday * 0.96;
+
+    for(let i=0;i<55;i++){
+
+      p = p *
+        (1 + Math.sin(i*0.37+seed)*0.006);
+
+      arr.push(Number(p.toFixed(2)));
+    }
+
+    return arr;
+  },
+
+  async getIntraday5m(stock){
+
+    /*
+      模拟5分钟K线。
+      正式版本接入真实5分钟K线。
+    */
+
+    const bars = [];
+
+    const rt =
+      await this.getRealtime(stock);
+
+    let p = rt.price * 0.995;
+
+    for(let i=0;i<12;i++){
+
+      const open = p;
+
+      const high =
+        open * (1 + 0.004 +
+        Math.abs(Math.sin(i+1))*0.002);
+
+      const low =
+        open * (1 - 0.003);
+
+      const close =
+        open * (1 +
+        Math.sin(i+1)*0.002);
+
+      bars.push({
+        open,
+        high,
+        low,
+        close
+      });
+
+      p = close;
+    }
+
+    return bars;
+  }
+};
+
+/* =========================================================
+   4. 均线计算
+   ========================================================= */
+
+function calcMA(closes,period,currentPrice){
+
+  const arr =
+    Array.isArray(closes) ? closes.slice() : [];
+
+  arr.push(currentPrice);
+
+  const n =
+    Math.min(period,arr.length);
+
+  if(n <= 0)return null;
+
+  const data =
+    arr.slice(arr.length-n);
+
+  return data.reduce((a,b)=>a+b,0)/n;
+}
+
+function calcAllMA(history,currentPrice){
+
+  return {
+    ma5:calcMA(history,5,currentPrice),
+    ma8:calcMA(history,8,currentPrice),
+    ma13:calcMA(history,13,currentPrice),
+    ma21:calcMA(history,21,currentPrice),
+    ma34:calcMA(history,34,currentPrice),
+    ma55:calcMA(history,55,currentPrice)
+  };
+}
+
+/* =========================================================
+   5. 买入等级
+   ========================================================= */
+
+function classifyBuy(ma){
+
+  const short = [
+    ma.ma5,
+    ma.ma8,
+    ma.ma13
+  ];
+
+  const long = [
+    ma.ma21,
+    ma.ma34,
+    ma.ma55
+  ];
+
+  const allAbove =
+    short.every(s =>
+      long.every(l => s > l)
+    );
+
+  if(allAbove){
+    return "A";
+  }
+
+  const above21 =
+    short.every(s => s > ma.ma21);
+
+  const below34 =
+    short.every(s => s < ma.ma34);
+
+  const below55 =
+    short.every(s => s < ma.ma55);
+
+  if(
+    above21 &&
+    below34 &&
+    below55
+  ){
+    return "B";
+  }
+
+  const allBelow =
+    short.every(s =>
+      long.every(l => s < l)
+    );
+
+  if(allBelow){
+    return "C";
+  }
+
+  return null;
+}
+
+/* =========================================================
+   6. 成交量基准
+   ========================================================= */
+
+function previousThreeVolumeAverage(stock){
+
+  /*
+    正式版本：
+    前3个交易日同一时间累计成交量平均值。
+
+    当前演示返回稳定基准。
+  */
+
+  const seed =
+    stock.code.split("")
+      .reduce((a,b)=>a+Number(b),0);
+
+  return 1000000 + seed*10000;
+}
+
+/* =========================================================
+   7. 买入候选资格
+   ========================================================= */
+
+function candidateKey(code){
+  return code;
+}
+
+function tradingDayId(){
+
+  const d = new Date();
+
+  /*
+    简化交易日ID。
+    正式版本接入A股交易日历。
+  */
+
+  return d.getFullYear()+"-"+
+    String(d.getMonth()+1).padStart(2,"0")+"-"+
+    String(d.getDate()).padStart(2,"0");
+}
+
+function addTradingDays(date,count){
+
+  const d = new Date(date);
+
+  let n = 0;
+
+  while(n<count){
+
+    d.setDate(d.getDate()+1);
+
+    const day=d.getDay();
+
+    if(day!==0 && day!==6){
+      n++;
+    }
+  }
+
+  return d;
+}
+
+function candidateValid(code){
+
+  const c = candidates[candidateKey(code)];
+
+  if(!c)return false;
+
+  const now = new Date();
+
+  return now <= new Date(c.expire);
+}
+
+/* =========================================================
+   8. MA5上穿确认
+   ========================================================= */
+
+function updateCrossConfirmation(stock,ma){
+
+  const code=stock.code;
+
+  if(!candidates[code]){
+    candidates[code]={
+      code,
+      crossStart:null,
+      lastRefresh:null,
+      confirmed:false,
+      expire:null
+    };
+  }
+
+  const c=candidates[code];
+
+  const above =
+    ma.ma5 > ma.ma8 &&
+    ma.ma5 > ma.ma13;
+
+  const now=Date.now();
+
+  if(above){
+
+    if(!c.crossStart){
+
+      c.crossStart=now;
+    }
+
+    const elapsed =
+      now-c.crossStart;
+
+    /*
+      连续真实5分钟。
+    */
+
+    if(elapsed >= 5*60*1000){
+
+      c.confirmed=true;
+
+      const expiry =
+        addTradingDays(new Date(),1);
+
+      expiry.setHours(23,59,59,999);
+
+      c.expire =
+        expiry.toISOString();
+
+    }
+
+  }else{
+
+    /*
+      第13条：
+      已经完成确认后，
+      后续暂时跌破不使候选资格失效。
+    */
+
+    if(!c.confirmed){
+
+      c.crossStart=null;
+    }
+  }
+
+  c.lastRefresh=now;
+
+  save(STORAGE.candidates,candidates);
+
+  return c;
+}
+
+/* =========================================================
+   9. 买入条件
+   ========================================================= */
+
+function evaluateBuy(stock,ma,rt){
+
+  /*
+    新股上市首日：
+    不产生买入信号。
+  */
+
+  const historyLength =
+    stock.historyLength || 55;
+
+  if(historyLength <= 0){
+    return null;
+  }
+
+  const c =
+    updateCrossConfirmation(stock,ma);
+
+  if(!c.confirmed){
+    return null;
+  }
+
+  if(!candidateValid(stock.code)){
+    return null;
+  }
+
+  /*
+    上涨条件：
+    当前价 > 昨日官方收盘价
+  */
+
+  const priceUp =
+    rt.price > rt.yesterdayClose;
+
+  if(!priceUp){
+    return null;
+  }
+
+  /*
+    成交量：
+    当前累计成交量 >= 前3日同时间平均 ×1.2
+  */
+
+  const baseline =
+    previousThreeVolumeAverage(stock);
+
+  const volumeRatio =
+    rt.volume / baseline;
+
+  if(volumeRatio < 1.2){
+    return null;
+  }
+
+  /*
+    每次实际买入触发时重新计算A/B/C。
+  */
+
+  const grade =
+    classifyBuy(ma);
+
+  if(!grade){
+    return null;
+  }
+
+  return {
+    code:stock.code,
+    name:stock.name,
+    grade,
+    price:rt.price,
+    volumeRatio,
+    ma
+  };
+}
+
+/* =========================================================
+   10. 5分钟长上影线
+   ========================================================= */
+
+function isLongUpperShadow(bar){
+
+  const body =
+    Math.abs(bar.close-bar.open);
+
+  const upper =
+    bar.high-Math.max(bar.open,bar.close);
+
+  if(body===0){
+    return upper>0;
+  }
+
+  return upper >= body*2;
+}
+
+/* =========================================================
+   11. 卖出条件
+   ========================================================= */
+
+async function evaluateSell(stock,ma,rt){
+
+  if(!holdings.includes(stock.code)){
+    return null;
+  }
+
+  /*
+    停牌不产生新的卖出信号。
+  */
+
+  if(rt.suspended){
+    return null;
+  }
+
+  /*
+    条件1：
+    最新成交价从 >= MA5
+    穿到 < MA5。
+  */
+
+  const previousPrice =
+    signals[stock.code]?.previousPrice;
+
+  let crossDown=false;
+
+  if(
+    previousPrice != null &&
+    previousPrice >= ma.ma5 &&
+    rt.price < ma.ma5
+  ){
+    crossDown=true;
+  }
+
+  /*
+    放量滞涨
+  */
+
+  const baseline =
+    previousThreeVolumeAverage(stock);
+
+  const volumeGrowth =
+    ((rt.volume-baseline)/baseline)*100;
+
+  const priceGain =
+    ((rt.price-rt.yesterdayClose)/
+      rt.yesterdayClose)*100;
+
+  const stagnation =
+    priceGain >= 0 &&
+    volumeGrowth >= priceGain*1.5;
+
+  /*
+    放量大跌
+    跌幅 >=1%
+    成交量增长率 >= 跌幅
+  */
+
+  const decline =
+    ((rt.yesterdayClose-rt.price)/
+      rt.yesterdayClose)*100;
+
+  const bigDrop =
+    decline >= 1 &&
+    volumeGrowth >= decline;
+
+  /*
+    5分钟长上影线
+  */
+
+  const bars =
+    await MarketAPI.getIntraday5m(stock);
+
+  const latestBar =
+    bars[bars.length-1];
+
+  const longUpper =
+    latestBar ?
+    isLongUpperShadow(latestBar) :
+    false;
+
+  /*
+    OR逻辑：
+    任一条件触发卖出。
+  */
+
+  if(
+    crossDown ||
+    stagnation ||
+    bigDrop ||
+    longUpper
+  ){
+
+    return {
+      code:stock.code,
+      name:stock.name,
+      price:rt.price,
+      ma5:ma.ma5,
+      volumeRatio:rt.volume/baseline,
+      longUpper,
+      crossDown,
+      stagnation,
+      bigDrop
+    };
+  }
+
+  return null;
+}
+
+/* =========================================================
+   12. 股票池规则
+   ========================================================= */
+
+function findStock(text){
+
+  const q=
+    String(text||"")
+      .trim()
+      .toLowerCase();
+
+  if(!q)return null;
+
+  return DEMO_STOCKS.find(s=>
+    s.code===q ||
+    s.name.toLowerCase().includes(q)
+  ) || null;
+}
+
+function addToPool(stock){
+
+  if(!stock)return;
+
+  if(stockPool.includes(stock.code)){
+    alert("该股票已在股票池中");
+    return;
+  }
+
+  stockPool.push(stock.code);
+
+  save(STORAGE.pool,stockPool);
+
+  renderAll();
+}
+
+function removeFromPool(){
+
+  const checks=
+    [...document.querySelectorAll(
+      "#poolList input[type=checkbox]:checked"
+    )];
+
+  const codes=
+    checks.map(x=>x.value);
+
+  stockPool=
+    stockPool.filter(x=>!codes.includes(x));
+
+  save(STORAGE.pool,stockPool);
+
+  renderAll();
+}
+
+function addHolding(stock){
+
+  if(!stock)return;
+
+  if(holdings.includes(stock.code)){
+    alert("该股票已在持仓中");
+    return;
+  }
+
+  holdings.push(stock.code);
+
+  save(STORAGE.holdings,holdings);
+
+  renderAll();
+}
+
+function removeHolding(){
+
+  const checks=
+    [...document.querySelectorAll(
+      "#holdingList input[type=checkbox]:checked"
+    )];
+
+  const codes=
+    checks.map(x=>x.value);
+
+  holdings=
+    holdings.filter(x=>!codes.includes(x));
+
+  save(STORAGE.holdings,holdings);
+
+  renderAll();
+}
+
+/* =========================================================
+   13. 标签
+   ========================================================= */
+
+function addTag(){
+
+  const input=
+    document.getElementById("tagInput");
+
+  const name=
+    input.value.trim();
+
+  if(!name)return;
+
+  if(tags.includes(name)){
+    alert("标签已经存在");
+    return;
+  }
+
+  tags.push(name);
+
+  save(STORAGE.tags,tags);
+
+  input.value="";
+
+  renderAll();
+}
+
+function deleteTag(name){
+
+  if(!confirm(
+    "确定删除标签「"+name+"」？\n\n"+
+    "删除标签不会删除股票。"
+  )){
+    return;
+  }
+
+  tags=
+    tags.filter(x=>x!==name);
+
+  /*
+    删除股票上的对应标签，
+    但股票本身保留。
+  */
+
+  stockPool.forEach(code=>{
+    const key="TAGS_"+code;
+
+    let arr=load(key,[]);
+
+    arr=arr.filter(x=>x!==name);
+
+    save(key,arr);
+  });
+
+  save(STORAGE.tags,tags);
+
+  renderAll();
+}
+
+function getStockTags(code){
+  return load("TAGS_"+code,[]);
+}
+
+function setStockTags(code,list){
+  save("TAGS_"+code,list);
+}
+
+/* =========================================================
+   14. 股票池渲染
+   ========================================================= */
+
+function renderPool(){
+
+  const tbody=
+    document.getElementById("poolList");
+
+  const q=
+    document.getElementById("poolSearch")
+      .value.trim();
+
+  let rows=[];
+
+  stockPool.forEach(code=>{
+
+    const s=
+      DEMO_STOCKS.find(x=>x.code===code);
+
+    if(!s)return;
+
+    if(q &&
+      !s.code.includes(q) &&
+      !s.name.includes(q)
+    )return;
+
+    const ts=getStockTags(code);
+
+    rows.push(`
+      <tr>
+        <td>
+          <input type="checkbox"
+                 value="${s.code}">
+        </td>
+        <td>${s.code}</td>
+        <td>${s.name}</td>
+        <td>${s.market}</td>
+        <td>
+          ${
+            ts.length
+            ? ts.map(t=>
+              `<span class="badge gray">${t}</span>`
+            ).join(" ")
+            : `<span class="small">无标签</span>`
+          }
+        </td>
+      </tr>
+    `);
+  });
+
+  tbody.innerHTML=
+    rows.join("") ||
+    `<tr><td colspan="5" class="empty">
+      股票池暂无股票
+    </td></tr>`;
+}
+
+/* =========================================================
+   15. 持仓渲染
+   ========================================================= */
+
+function renderHoldings(){
+
+  const tbody=
+    document.getElementById("holdingList");
+
+  const q=
+    document.getElementById("holdingSearch")
+      .value.trim();
+
+  let rows=[];
+
+  holdings.forEach(code=>{
+
+    const s=
+      DEMO_STOCKS.find(x=>x.code===code);
+
+    if(!s)return;
+
+    if(q &&
+      !s.code.includes(q) &&
+      !s.name.includes(q)
+    )return;
+
+    rows.push(`
+      <tr>
+        <td>
+          <input type="checkbox"
+                 value="${s.code}">
+        </td>
+        <td>${s.code}</td>
+        <td>${s.name}</td>
+        <td>${s.market}</td>
+      </tr>
+    `);
+  });
+
+  tbody.innerHTML=
+    rows.join("") ||
+    `<tr><td colspan="4" class="empty">
+      持仓池暂无股票
+    </td></tr>`;
+}
+
+/* =========================================================
+   16. 标签渲染
+   ========================================================= */
+
+function renderTags(){
+
+  const tbody=
+    document.getElementById("tagList");
+
+  tbody.innerHTML=
+    tags.map(tag=>{
+
+      let count=0;
+
+      stockPool.forEach(code=>{
+        if(getStockTags(code).includes(tag)){
+          count++;
+        }
+      });
+
+      return `
+        <tr>
+          <td>${tag}</td>
+          <td>${count}</td>
+          <td>
+            <button
+              onclick='deleteTag(${JSON.stringify(tag)})'
+              class="danger">
+              删除
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("") ||
+    `<tr>
+      <td colspan="3"
+          class="empty">
+        暂无标签
+      </td>
+    </tr>`;
+}
+
+/* =========================================================
+   17. 买入筛选
+   ========================================================= */
+
+async function runBuy(){
+
+  const tbody=
+    document.getElementById("buyList");
+
+  tbody.innerHTML=
+    `<tr><td colspan="11"
+      class="empty">
+      正在计算……
+    </td></tr>`;
+
+  const universe=
+    await MarketAPI.getUniverse();
+
+  const scope=
+    document.getElementById("buyScope").value;
+
+  const selected=
+    scope==="pool"
+      ? universe.filter(s=>
+          stockPool.includes(s.code))
+      : universe;
+
+  const results=[];
+
+  for(const stock of selected){
+
+    const rt=
+      await MarketAPI.getRealtime(stock);
+
+    const history=
+      await MarketAPI.getHistory(stock);
+
+    stock.historyLength=
+      history.length;
+
+    /*
+      新股上市首日没有昨日收盘价：
+      当前演示数据均视为正常股票。
+    */
+
+    const ma=
+      calcAllMA(history,rt.price);
+
+    const result=
+      evaluateBuy(stock,ma,rt);
+
+    if(result){
+      results.push(result);
+    }
+
+    /*
+      保存前一价格，供卖出跌破MA5使用。
+    */
+
+    if(!signals[stock.code]){
+      signals[stock.code]={};
+    }
+
+    signals[stock.code].previousPrice=
+      rt.price;
+  }
+
+  save(STORAGE.signals,signals);
+
+  /*
+    A > B > C
+  */
+
+  results.sort((a,b)=>{
+    const order={A:0,B:1,C:2};
+    return order[a.grade]-order[b.grade];
+  });
+
+  tbody.innerHTML=
+    results.map(r=>{
+
+      const cls=
+        r.grade==="A"
+          ? "buyA"
+          : r.grade==="B"
+          ? "buyB"
+          : "buyC";
+
+      const s=DEMO_STOCKS
+        .find(x=>x.code===r.code);
+
+      const change=
+        ((r.price-s.yesterday)/
+          s.yesterday*100);
+
+      return `
+        <tr>
+          <td>${r.code} ${r.name}</td>
+          <td>${r.price.toFixed(2)}</td>
+          <td>${change.toFixed(2)}%</td>
+          <td>${r.ma.ma5.toFixed(2)}</td>
+          <td>${r.ma.ma8.toFixed(2)}</td>
+          <td>${r.ma.ma13.toFixed(2)}</td>
+          <td>${r.ma.ma21.toFixed(2)}</td>
+          <td>${r.ma.ma34.toFixed(2)}</td>
+          <td>${r.ma.ma55.toFixed(2)}</td>
+          <td>${r.volumeRatio.toFixed(2)}x</td>
+          <td>
+            <span class="badge ${cls}">
+              ${r.grade}级买入
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join("") ||
+    `<tr>
+      <td colspan="11"
+          class="empty">
+        当前没有有效买入信号
+      </td>
+    </tr>`;
+
+  updateKPI(results,null);
+  updateSignalTable();
+
+  document.getElementById("refreshStatus")
+    .textContent=
+      "前台刷新：" +
+      new Date().toLocaleTimeString();
+}
+
+/* =========================================================
+   18. 卖出筛选
+   ========================================================= */
+
+async function runSell(){
+
+  const tbody=
+    document.getElementById("sellList");
+
+  tbody.innerHTML=
+    `<tr><td colspan="7"
+      class="empty">
+      正在计算……
+    </td></tr>`;
+
+  const results=[];
+
+  for(const code of holdings){
+
+    const stock=
+      DEMO_STOCKS.find(s=>s.code===code);
+
+    if(!stock)continue;
+
+    const rt=
+      await MarketAPI.getRealtime(stock);
+
+    const history=
+      await MarketAPI.getHistory(stock);
+
+    stock.historyLength=
+      history.length;
+
+    const ma=
+      calcAllMA(history,rt.price);
+
+    const result=
+      await evaluateSell(
+        stock,
+        ma,
+        rt
+      );
+
+    /*
+      卖出信号一旦触发，
+      当天保留。
+    */
+
+    if(result){
+
+      signals[code]={
+        ...(signals[code]||{}),
+        sell:true,
+        sellTime:
+          Date.now(),
+        previousPrice:
+          rt.price
+      };
+
+      results.push(result);
+
+    }else{
+
+      /*
+        第86、87条：
+        当前所有卖出条件均消失，
+        才解除。
+      */
+
+      if(signals[code]){
+        signals[code].sell=false;
+      }
+    }
+
+    if(!signals[code]){
+      signals[code]={};
+    }
+
+    signals[code].previousPrice=
+      rt.price;
+  }
+
+  save(STORAGE.signals,signals);
+
+  tbody.innerHTML=
+    results.map(r=>{
+
+      const stock=
+        DEMO_STOCKS.find(
+          s=>s.code===r.code
+        );
+
+      const change=
+        ((r.price-stock.yesterday)/
+          stock.yesterday*100);
+
+      const reasons=[];
+
+      if(r.crossDown)
+        reasons.push("跌破MA5");
+
+      if(r.stagnation)
+        reasons.push("放量滞涨");
+
+      if(r.bigDrop)
+        reasons.push("放量大跌");
+
+      if(r.longUpper)
+        reasons.push("长上影线");
+
+      return `
+        <tr>
+          <td>${r.code} ${r.name}</td>
+          <td>${r.price.toFixed(2)}</td>
+          <td>${change.toFixed(2)}%</td>
+          <td>${r.ma5.toFixed(2)}</td>
+          <td>${r.volumeRatio.toFixed(2)}x</td>
+          <td>${r.longUpper?"是":"否"}</td>
+          <td>
+            <span class="badge sell">
+              卖出
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join("") ||
+    `<tr>
+      <td colspan="7"
+          class="empty">
+        当前没有新的卖出触发
+      </td>
+    </tr>`;
+
+  updateKPI(null,results);
+  updateSignalTable();
+}
+
+/* =========================================================
+   19. 当前信号
+   ========================================================= */
+
+function updateSignalTable(){
+
+  const tbody=
+    document.getElementById("signalList");
+
+  const rows=[];
+
+  Object.keys(signals).forEach(code=>{
+
+    const s=
+      DEMO_STOCKS.find(x=>x.code===code);
+
+    if(!s)return;
+
+    const x=signals[code];
+
+    if(!x.buy && !x.sell)return;
+
+    rows.push(`
+      <tr>
+        <td>${s.code} ${s.name}</td>
+
+        <td>
+          ${
+            x.buy
+            ? `<span class="badge buyA">
+                ${x.buy}
+              </span>`
+            : "-"
+          }
+        </td>
+
+        <td>
+          ${
+            x.sell
+            ? `<span class="badge sell">
+                卖出
+              </span>`
+            : "-"
+          }
+        </td>
+
+        <td>
+          ${
+            x.sellTime
+            ? new Date(x.sellTime)
+                .toLocaleTimeString()
+            : "-"
+          }
+        </td>
+      </tr>
+    `);
+  });
+
+  tbody.innerHTML=
+    rows.join("") ||
+    `<tr>
+      <td colspan="4"
+          class="empty">
+        当前没有有效信号
+      </td>
+    </tr>`;
+}
+
+/* =========================================================
+   20. KPI
+   ========================================================= */
+
+function updateKPI(buyResults,sellResults){
+
+  const market=
+    DEMO_STOCKS.length;
+
+  document.getElementById("kpiMarket")
+    .textContent=market;
+
+  document.getElementById("kpiPool")
+    .textContent=stockPool.length;
+
+  document.getElementById("kpiHolding")
+    .textContent=holdings.length;
+
+  if(buyResults){
+
+    document.getElementById("kpiA")
+      .textContent=
+        buyResults.filter(x=>
+          x.grade==="A").length;
+
+    document.getElementById("kpiB")
+      .textContent=
+        buyResults.filter(x=>
+          x.grade==="B").length;
+  }
+
+  if(sellResults){
+
+    document.getElementById("kpiSell")
+      .textContent=
+        sellResults.length;
+  }
+}
+
+/* =========================================================
+   21. 全部渲染
+   ========================================================= */
+
+function renderAll(){
+
+  renderPool();
+  renderHoldings();
+  renderTags();
+  updateKPI([],[]);
+  updateSignalTable();
+}
+
+/* =========================================================
+   22. Tab
+   ========================================================= */
+
+document.querySelectorAll(".tab")
+.forEach(tab=>{
+
+  tab.addEventListener("click",()=>{
+
+    document.querySelectorAll(".tab")
+      .forEach(x=>
+        x.classList.remove("active"));
+
+    tab.classList.add("active");
+
+    const name=
+      tab.dataset.tab;
+
+    document.querySelectorAll(
+      '[id^="tab-"]'
+    ).forEach(x=>
+      x.classList.add("hidden"));
+
+    document.getElementById(
+      "tab-"+name
+    ).classList.remove("hidden");
+  });
+});
+
+/* =========================================================
+   23. 按钮事件
+   ========================================================= */
+
+document.getElementById("runBtn")
+  .addEventListener("click",async()=>{
+
+    await runBuy();
+    await runSell();
+  });
+
+document.getElementById("buyRun")
+  .addEventListener("click",runBuy);
+
+document.getElementById("sellRun")
+  .addEventListener("click",runSell);
+
+document.getElementById("poolAdd")
+  .addEventListener("click",()=>{
+
+    const text=
+      document.getElementById("poolSearch")
+        .value;
+
+    const stock=findStock(text);
+
+    if(!stock){
+      alert("没有找到对应股票");
+      return;
+    }
+
+    addToPool(stock);
+  });
+
+document.getElementById("poolRemove")
+  .addEventListener(
+    "click",
+    removeFromPool
+  );
+
+document.getElementById("holdingAdd")
+  .addEventListener("click",()=>{
+
+    const text=
+      document.getElementById("holdingSearch")
+        .value;
+
+    const stock=findStock(text);
+
+    if(!stock){
+      alert("没有找到对应股票");
+      return;
+    }
+
+    addHolding(stock);
+  });
+
+document.getElementById("holdingRemove")
+  .addEventListener(
+    "click",
+    removeHolding
+  );
+
+document.getElementById("tagAdd")
+  .addEventListener(
+    "click",
+    addTag
+  );
+
+document.getElementById("poolSearch")
+  .addEventListener(
+    "input",
+    renderPool
+  );
+
+document.getElementById("holdingSearch")
+  .addEventListener(
+    "input",
+    renderHoldings
+  );
+
+/* =========================================================
+   24. 清除当前信号
+   ========================================================= */
+
+document.getElementById("clearSignalsBtn")
+.addEventListener("click",()=>{
+
+  if(!confirm("确定清除当前信号显示？")){
+    return;
+  }
+
+  signals={};
+
+  save(STORAGE.signals,signals);
+
+  updateSignalTable();
+
+  document.getElementById("buyList")
+    .innerHTML="";
+
+  document.getElementById("sellList")
+    .innerHTML="";
+});
+
+/* =========================================================
+   25. 模式
+   ========================================================= */
+
+document.getElementById("demoBtn")
+.addEventListener("click",()=>{
+
+  MarketAPI.mode =
+    MarketAPI.mode==="demo"
+      ? "demo"
+      : "demo";
+
+  document.getElementById("marketStatus")
+    .textContent=
+      "行情模式：演示";
+
+  alert(
+    "当前V1.0使用演示行情。\n\n"+
+    "正式接入真实A股行情时，"+
+    "只替换 MarketAPI 行情层，"+
+    "核心筛选规则不改变。"
+  );
+});
+
+/* =========================================================
+   26. 后台持续计算
+   =========================================================
+   第80、81条：
+   后台持续计算；
+   前台每5分钟刷新。
+   ========================================================= */
+
+let backgroundRunning=true;
+
+async function backgroundEngine(){
+
+  if(!backgroundRunning)return;
+
+  /*
+    后台持续计算。
+    浏览器实际运行频率由行情接口决定。
+  */
+
+  try{
+
+    const universe=
+      await MarketAPI.getUniverse();
+
+    for(const stock of universe){
+
+      const rt=
+        await MarketAPI.getRealtime(stock);
+
+      const history=
+        await MarketAPI.getHistory(stock);
+
+      const ma=
+        calcAllMA(history,rt.price);
+
+      /*
+        更新买入候选确认状态。
+      */
+
+      updateCrossConfirmation(
+        stock,
+        ma
+      );
+
+      /*
+        持仓卖出后台实时判断。
+      */
+
+      if(holdings.includes(stock.code)){
+
+        await evaluateSell(
+          stock,
+          ma,
+          rt
+        );
+      }
+    }
+
+  }catch(e){
+
+    console.error(
+      "后台策略计算错误：",
+      e
+    );
+  }
+}
+
+/*
+  演示模式后台每5秒运行一次。
+  正式行情接入后，
+  这里由行情推送驱动。
+*/
+
+setInterval(
+  backgroundEngine,
+  5000
+);
+
+/* =========================================================
+   27. 前台5分钟刷新
+   ========================================================= */
+
+async function frontendRefresh(){
+
+  await runBuy();
+  await runSell();
+
+  document.getElementById(
+    "refreshStatus"
+  ).textContent=
+    "前台刷新：" +
+    new Date().toLocaleTimeString();
+}
+
+setInterval(
+  frontendRefresh,
+  5*60*1000
+);
+
+/* =========================================================
+   28. 初始化
+   ========================================================= */
+
+renderAll();
+
+console.log(
+  "A股实时选股平台 V1.0 已启动"
+);
+
+console.log(
+  "规则引擎：买入 / 卖出"
+);
+
+console.log(
+  "数据存储：localStorage"
+);
+
+console.log(
+  "股票池：独立"
+);
+
+console.log(
+  "持仓池：独立"
+);
+
+console.log(
+  "标签：独立"
+);
+
+</script>
+
+</body>
+</html>
